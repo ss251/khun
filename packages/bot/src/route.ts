@@ -5,6 +5,7 @@ import {
   handleHelp,
   handleMe,
   handlePrice,
+  handleSetBitkub,
   handleStart,
   handleWithdraw,
 } from './commands.js';
@@ -54,8 +55,10 @@ export async function handleUpdate(update: unknown): Promise<void> {
         return handleMe(msg.chat.id);
       case 'price':
         return handlePrice(msg.chat.id, cmd.args);
+      case 'setbitkub':
+        return handleSetBitkub(msg.chat.id, cmd.args);
       case 'withdraw':
-        return handleWithdraw(msg.chat.id);
+        return handleWithdraw(msg.chat.id, cmd.args);
       default:
         await sendMessage({
           chatId: msg.chat.id,

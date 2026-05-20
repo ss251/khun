@@ -7,6 +7,10 @@ import {
 import {
   getAgentByOwner,
   getUsdtThbRate,
+  OffRampError,
+  offrampToBitkub,
+  parseSolanaAddress,
+  setBitkubDepositAddress,
   updateAgentPrice,
 } from '@khun/agent-creator';
 import { env } from '@khun/shared';
@@ -17,7 +21,8 @@ const HELP = [
   '/start  — เริ่มต้น',
   '/me     — ดูบัตร agent ของคุณ',
   '/price <USDT>  — เปลี่ยนราคา เช่น /price 25',
-  '/withdraw  — ดูยอด USDT และวิธีถอนเป็น THB (เร็วๆ นี้)',
+  '/setbitkub <address>  — บันทึก deposit address ของ Bitkub (Solana USDT)',
+  '/withdraw [USDT]  — ถอน USDT ไปที่ Bitkub (ใส่จำนวน หรือถอนทั้งหมด)',
   '/help   — ดูคำสั่งทั้งหมด',
   '',
   'ลงทะเบียนใหม่: พิมพ์บอกผมว่าคุณขาย/ให้บริการอะไรเป็นภาษาไทย',
@@ -114,7 +119,24 @@ export async function handlePrice(chatId: number, args: string): Promise<void> {
   });
 }
 
-export async function handleWithdraw(chatId: number): Promise<void> {
+export async function handleSetBitkub(chatId: number, args: string): Promise<void> {
+  const address = args.trim();
+  if (!address) {
+    await sendMessage({
+      chatId,
+      text:
+        'ตัวอย่าง: /setbitkub 5YuANWZb...\n' +
+        'หา deposit address: เปิดแอป Bitkub → ฝาก → USDT → เลือกเครือข่าย Solana → คัดลอก',
+    });
+    return;
+  }
+  try {
+    parseSolanaAddress(address);
+  } catch (err) {
+    const message = err instanceof OffRampError ? err.message : String(err);
+    await sendMessage({ chatId, text: `address ไม่ถูกต้องครับ: ${message}` });
+    return;
+  }
   const agent = getAgentByOwner(String(chatId));
   if (!agent) {
     await sendMessage({
@@ -123,27 +145,110 @@ export async function handleWithdraw(chatId: number): Promise<void> {
     });
     return;
   }
-  let balanceLine = '';
+  setBitkubDepositAddress(agent.agentId, address);
+  await sendMessage({
+    chatId,
+    text:
+      `บันทึก Bitkub deposit address แล้วครับ ✅\n` +
+      `address: ${address}\n` +
+      `พิมพ์ /withdraw เพื่อถอน USDT ไปที่ Bitkub`,
+  });
+}
+
+export async function handleWithdraw(chatId: number, args: string): Promise<void> {
+  const agent = getAgentByOwner(String(chatId));
+  if (!agent) {
+    await sendMessage({
+      chatId,
+      text: 'ยังไม่มี agent ครับ — ลงทะเบียนก่อนโดยพิมพ์บริการของคุณ',
+    });
+    return;
+  }
+  if (!agent.bitkubDepositAddress) {
+    await sendMessage({
+      chatId,
+      text:
+        'ยังไม่ได้บันทึก Bitkub deposit address ครับ\n' +
+        'เปิดแอป Bitkub → ฝาก → USDT → เลือกเครือข่าย Solana → คัดลอก address\n' +
+        'จากนั้นพิมพ์: /setbitkub <address>',
+    });
+    return;
+  }
+
+  let usdtBalance = 0;
   try {
     const conn = new Connection(env.solanaRpcUrl(), 'confirmed');
     const mint = new PublicKey(env.usdtSolanaMint());
     const wallet = new PublicKey(agent.walletAddress);
     const ata = getAssociatedTokenAddressSync(mint, wallet);
     const acct = await getAccount(conn, ata, undefined, TOKEN_PROGRAM_ID);
-    const usdt = Number(acct.amount) / 1_000_000;
-    balanceLine = `ยอดคงเหลือ: ${usdt.toFixed(2)} USDT\n`;
+    usdtBalance = Number(acct.amount) / 1_000_000;
   } catch {
-    balanceLine = 'ยอดคงเหลือ: 0.00 USDT\n';
+    /* no ATA yet */
   }
+  if (usdtBalance <= 0) {
+    await sendMessage({ chatId, text: 'ยอด USDT เป็น 0 ครับ — ยังไม่มีอะไรให้ถอน' });
+    return;
+  }
+
+  // Parse amount; default to full balance.
+  let amount = usdtBalance;
+  const requestedRaw = args.trim().replace(/[^\d.]/g, '');
+  if (requestedRaw) {
+    const requested = Number(requestedRaw);
+    if (!Number.isFinite(requested) || requested <= 0) {
+      await sendMessage({ chatId, text: `จำนวนไม่ถูกต้อง: ${args}` });
+      return;
+    }
+    if (requested > usdtBalance) {
+      await sendMessage({
+        chatId,
+        text: `ขอ ${requested} USDT แต่มีแค่ ${usdtBalance.toFixed(2)} USDT`,
+      });
+      return;
+    }
+    amount = requested;
+  }
+
   await sendMessage({
     chatId,
-    text:
-      `เบิก USDT เข้า Bitkub 🏦\n` +
-      balanceLine +
-      `\nวิธี (เร็วๆ นี้ — Block 6):\n` +
-      `1. ลงทะเบียน Bitkub แล้วไปที่ "ฝาก USDT" เลือกเครือข่าย Solana\n` +
-      `2. ส่ง USDT จาก ${agent.walletAddress} ไปที่ deposit address ของคุณ\n` +
-      `3. ขาย USDT → ถอนเป็น THB เข้าบัญชีไทย\n\n` +
-      `(ระบบจะทำขั้นตอน 2 ให้คุณอัตโนมัติเมื่อเปิดใช้)`,
+    text: `กำลังส่ง ${amount.toFixed(2)} USDT ไปยัง ${agent.bitkubDepositAddress.slice(0, 8)}…`,
   });
+
+  try {
+    const receipt = await offrampToBitkub({
+      ownerChatId: String(chatId),
+      toBitkubAddress: agent.bitkubDepositAddress,
+      amountUsdt: amount,
+    });
+    const explorerSuffix =
+      env.agentRegistryCluster() === 'mainnet-beta' ? '' : '?cluster=devnet';
+
+    let thbLine = '';
+    try {
+      const rate = await getUsdtThbRate();
+      thbLine = `≈ ฿${(amount * rate).toFixed(2)} (Bitkub rate ${rate.toFixed(2)})\n`;
+    } catch {
+      /* best-effort */
+    }
+
+    await sendMessage({
+      chatId,
+      text:
+        `เบิกเข้า Bitkub สำเร็จ ✅\n` +
+        `จำนวน: ${amount.toFixed(2)} USDT\n` +
+        thbLine +
+        `ไปยัง: ${receipt.toAddress}\n` +
+        `Tx: https://explorer.solana.com/tx/${receipt.txSignature}${explorerSuffix}\n\n` +
+        `ขั้นตอนสุดท้าย: เปิดแอป Bitkub → ดูยอด USDT → ขายเป็น THB → ถอนเข้าบัญชีไทย`,
+    });
+  } catch (err) {
+    const code = err instanceof OffRampError ? err.code : 'unexpected';
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('offramp failed', err);
+    await sendMessage({
+      chatId,
+      text: `ถอนไม่สำเร็จ (${code}): ${message}`,
+    });
+  }
 }

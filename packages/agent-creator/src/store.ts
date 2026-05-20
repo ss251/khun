@@ -50,3 +50,15 @@ export function updateAgentPrice(agentId: string, priceUsdt: number): KhunAgent 
   save(s);
   return a;
 }
+
+export function setBitkubDepositAddress(
+  agentId: string,
+  address: string
+): KhunAgent | null {
+  const s = load();
+  const a = s[agentId];
+  if (!a) return null;
+  a.bitkubDepositAddress = address;
+  save(s);
+  return a;
+}
