@@ -1,0 +1,50 @@
+# Project research dump — not for public repo
+research/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+
+# Solana / wallets
+keypair.json
+id.json
+.anchor/
+target/
+
+# AWS / deploy
+.aws-sam/
+.serverless/
+.vercel/
+.netlify/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+coverage/
+*.tsbuildinfo
+.cache/
+tmp/

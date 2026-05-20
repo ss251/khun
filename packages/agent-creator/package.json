@@ -1,0 +1,19 @@
+{
+  "name": "@khun/agent-creator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "register": "bun src/cli.ts"
+  },
+  "dependencies": {
+    "@khun/shared": "*",
+    "8004-solana": "*",
+    "@solana/web3.js": "^1.95.0",
+    "@solana/spl-token": "^0.4.9",
+    "x402-hono": "*",
+    "x402": "*",
+    "hono": "^4.6.0"
+  }
+}

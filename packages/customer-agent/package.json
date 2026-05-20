@@ -1,0 +1,13 @@
+{
+  "name": "@khun/customer-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/pay.ts",
+  "scripts": {
+    "demo": "bun src/pay.ts"
+  },
+  "dependencies": {
+    "@khun/shared": "*"
+  }
+}
