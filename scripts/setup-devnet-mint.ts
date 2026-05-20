@@ -13,7 +13,7 @@
  * The treasury keypair is set as the mint authority and mints an initial
  * 10,000 token balance to the buyer.
  */
-import '../packages/shared/src/env.js';
+import { env } from '../packages/shared/src/env.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
@@ -22,7 +22,6 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from '@solana/spl-token';
-import { env } from '@khun/shared';
 
 const KEYS_DIR = path.resolve(process.cwd(), '.keys');
 const MINT_FILE = path.join(KEYS_DIR, 'devnet-mint.json');

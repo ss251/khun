@@ -6,5 +6,6 @@ export * from './registry.js';
 export * from './x402.js';
 export * from './x402-server.js';
 export * from './x402-settle.js';
+export * from './openapi.js';
 export * from './store.js';
 export * from './bitkub.js';

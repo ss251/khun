@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { getAgent } from './store.js';
+import { getAgent, listAgents } from './store.js';
 import { buildUsdtRequirements, buildX402Challenge } from './x402.js';
 import { verifyAndSettle, X402SettleError, type SettlementReceipt } from './x402-settle.js';
 import type { KhunAgent } from '@khun/shared';
@@ -26,6 +26,51 @@ export interface BuildAgentApiOptions {
  */
 export function buildAgentApi(opts: BuildAgentApiOptions): Hono {
   const app = new Hono();
+
+  // --- Discovery (free, used by Pay.sh + dashboard) ---
+  // GET /search?q=&category=&location=&languages=th,en&limit=20
+  app.get('/search', (c) => {
+    const q = (c.req.query('q') ?? '').toLowerCase();
+    const category = c.req.query('category');
+    const location = (c.req.query('location') ?? '').toLowerCase();
+    const langsParam = c.req.query('languages');
+    const wantedLangs = langsParam ? langsParam.split(',').map((s) => s.trim().toLowerCase()) : null;
+    const limit = Math.min(Number(c.req.query('limit') ?? 20), 100);
+
+    const matches = listAgents().filter((a) => {
+      if (category && a.intent.category !== category) return false;
+      if (location && !(a.intent.location ?? '').toLowerCase().includes(location)) return false;
+      if (wantedLangs && wantedLangs.length > 0) {
+        const have = (a.intent.languages ?? []).map((l) => l.toLowerCase());
+        if (!wantedLangs.some((l) => have.includes(l))) return false;
+      }
+      if (q) {
+        const hay = (
+          a.intent.serviceDescriptionEnglish +
+          ' ' +
+          a.intent.serviceDescriptionThai +
+          ' ' +
+          (a.intent.location ?? '')
+        ).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    return c.json({
+      count: matches.length,
+      results: matches.slice(0, limit).map((a) => ({
+        agentId: a.agentId,
+        endpointUrl: a.endpointUrl,
+        priceUsdt: a.intent.priceUsdt,
+        category: a.intent.category,
+        location: a.intent.location,
+        languages: a.intent.languages,
+        descriptionEn: a.intent.serviceDescriptionEnglish,
+        descriptionTh: a.intent.serviceDescriptionThai,
+      })),
+    });
+  });
 
   app.get('/:agentId', (c) => {
     const agent = getAgent(c.req.param('agentId'));

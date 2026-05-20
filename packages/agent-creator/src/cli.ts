@@ -15,6 +15,7 @@ import { env } from '@khun/shared';
 import { getUsdtThbRate } from './bitkub.js';
 import { ensureKhunCollection } from './collection.js';
 import { registerKhunAgent } from './registry.js';
+import { recordAgent } from './store.js';
 import { loadTreasury } from './wallet.js';
 
 async function showStatus(): Promise<void> {
@@ -60,14 +61,23 @@ async function registerTest(): Promise<void> {
     languages: ['th', 'en'],
   };
 
-  const fakeChatId = 'cli-test-' + Date.now();
+  // For an end-to-end x402 settle test, pass --chat-id <number> so the bot
+  // can later DM that chat with the payment notification. Defaults to a
+  // throwaway string-id; the Telegram push will fail in that case but the
+  // settle flow still works.
+  const chatIdArg = process.argv.indexOf('--chat-id');
+  const ownerChatId =
+    chatIdArg >= 0 ? process.argv[chatIdArg + 1]! : 'cli-test-' + Date.now();
   const endpointUrl = `http://localhost:3000/agent/pending/order`;
-  console.log('Registering test agent with chat id', fakeChatId, '…');
-  const agent = await registerKhunAgent({ intent, endpointUrl, ownerChatId: fakeChatId });
+  console.log('Registering test agent with owner', ownerChatId, '…');
+  const agent = await registerKhunAgent({ intent, endpointUrl, ownerChatId });
+  agent.endpointUrl = `http://localhost:3000/agent/${agent.agentId}/order`;
+  recordAgent(agent);
   console.log('REGISTERED:');
-  console.log('  agentId:', agent.agentId);
-  console.log('  wallet :', agent.walletAddress);
-  console.log('  tx sig :', agent.registryTxSignature);
+  console.log('  agentId :', agent.agentId);
+  console.log('  wallet  :', agent.walletAddress);
+  console.log('  tx sig  :', agent.registryTxSignature);
+  console.log('  endpoint:', agent.endpointUrl);
 }
 
 async function main() {

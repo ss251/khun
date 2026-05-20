@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { buildAgentApi } from '@khun/agent-creator';
+import { buildAgentApi, buildKhunOpenApi } from '@khun/agent-creator';
 import { handler } from './handler.js';
 import { publicBaseUrl } from './config.js';
 import { notifyMerchantOfPayment } from './notify.js';
@@ -48,6 +48,9 @@ app.route(
 app.get('/', (c) =>
   c.text('Khun — Thai service-provider agents on Solana via x402. github.com/ss251/khun')
 );
+
+// Pay.sh `pay catalog check` fetches the OpenAPI spec from PAY.md's openapi.url.
+app.get('/openapi.json', (c) => c.json(buildKhunOpenApi({ publicBaseUrl: publicBaseUrl() })));
 
 export default app;
 // Bun auto-serves the default export.

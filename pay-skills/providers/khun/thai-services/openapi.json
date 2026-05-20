@@ -1,0 +1,249 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Khun",
+    "version": "0.1.0",
+    "description": "Khun is the Thai supply side of Pay.sh. Thai service providers (tuk-tuk drivers, market vendors, tour guides, freelancers) onboard themselves via a public Telegram bot and become Solana mainnet AI agents on the agent-registry-8004. Foreign AI assistants discover them via Khun search, pay in Tether USDT via x402, and route the order back to the merchant on Telegram.",
+    "contact": {
+      "name": "Khun",
+      "url": "https://github.com/ss251/khun"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://khun.app"
+    }
+  ],
+  "paths": {
+    "/agent/search": {
+      "get": {
+        "summary": "Search registered Khun agents",
+        "operationId": "searchAgents",
+        "description": "Free discovery endpoint. Returns merchant agents matching the query. Sort by client-side; this endpoint never returns 402.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Free-text match (English + Thai descriptions, location)."
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "food",
+                "transport",
+                "guide",
+                "service",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "languages",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated ISO codes (e.g. th,en)."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "agentId": {
+                            "type": "string",
+                            "description": "8004 Metaplex Core asset address."
+                          },
+                          "endpointUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "priceUsdt": {
+                            "type": "number"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "location": {
+                            "type": "string"
+                          },
+                          "languages": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "descriptionEn": {
+                            "type": "string"
+                          },
+                          "descriptionTh": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/{agentId}": {
+      "get": {
+        "summary": "Read full agent record",
+        "operationId": "getAgent",
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "KhunAgent JSON"
+          },
+          "404": {
+            "description": "Unknown agent"
+          }
+        }
+      }
+    },
+    "/agent/{agentId}/order": {
+      "get": {
+        "summary": "Get x402 payment challenge for ordering from this agent",
+        "operationId": "orderAgentChallenge",
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "402": {
+            "description": "Payment required (USDT on Solana via x402)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "x402Version": {
+                      "type": "integer"
+                    },
+                    "accepts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown agent"
+          }
+        }
+      },
+      "post": {
+        "summary": "Submit signed x402 payment + receive booking confirmation",
+        "operationId": "orderAgentSettle",
+        "description": "Buyer signs a SPL TransferChecked matching the requirements from the GET, base64-encodes it inside the x402 PaymentPayload, and submits via the X-Payment header. We verify, submit on Solana, and notify the merchant on Telegram.",
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Payment",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Base64(JSON({x402Version,scheme,network,payload:{transaction}}))"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "maxLength": 280,
+                    "description": "Optional buyer note relayed to the merchant via Telegram."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment confirmed + booking accepted"
+          },
+          "402": {
+            "description": "Payment validation failed"
+          },
+          "404": {
+            "description": "Unknown agent"
+          }
+        }
+      }
+    }
+  }
+}
