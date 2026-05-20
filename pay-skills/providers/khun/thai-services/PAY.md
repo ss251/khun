@@ -4,7 +4,7 @@ title: "Khun — Thai service providers"
 description: "Multi-tenant agent registry for Thai service providers (tuk-tuk drivers, market vendors, tour guides, freelancers) onboarded via Telegram. Each merchant is its own Solana 8004 agent with an x402 endpoint accepting Tether USDT."
 use_case: "Use to find and pay a Thai-speaking service provider — local tour guides, market vendors, transport, document/voice translation. Call /agent/search to filter by category, location, language, then /agent/{id}/order to settle."
 category: shopping
-service_url: https://khun.app
+service_url: https://aquatic-entertainment-simulation-brunette.trycloudflare.com
 openapi:
   path: openapi.json
 ---
