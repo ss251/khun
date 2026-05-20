@@ -1,30 +1,44 @@
 import type { TelegramUpdate } from './telegram.js';
 import { sendMessage } from './telegram.js';
-import { parseThaiIntent } from './typhoon.js';
+import { onboardMerchant } from './onboard.js';
 
 /**
- * Block 2 stub. Receives a Telegram Update, runs Thai intent parsing via
- * Typhoon, replies with a debug echo.
- * Block 3 will replace this with: wallet provisioning + 8004 register + x402
- * endpoint factory + final reply containing the agent card.
+ * Block 2 wire-up: Telegram message in → Typhoon parse → Claude shape →
+ * Thai reply with agent card. Block 3 will replace the stub agent inside
+ * onboardMerchant() with a real 8004-solana register call.
  */
 export async function handleUpdate(update: unknown): Promise<void> {
   const u = update as TelegramUpdate;
   const msg = u.message;
   if (!msg?.text) return;
 
-  const rawIntent = await parseThaiIntent(msg.text);
-  await sendMessage({
-    chatId: msg.chat.id,
-    replyToMessageId: msg.message_id,
-    text: `กำลังลงทะเบียน… (debug intent)\n<pre>${escapeHtml(rawIntent).slice(0, 1500)}</pre>`,
-  });
-}
+  // /start gets a friendly intro instead of the full onboarding flow.
+  if (msg.text.startsWith('/start') || msg.text === '/help') {
+    await sendMessage({
+      chatId: msg.chat.id,
+      text:
+        'สวัสดีครับ คุณเข้าสู่ Khun แล้ว 🪷\n' +
+        'พิมพ์บอกผมว่าคุณขาย/ให้บริการอะไร ราคาเท่าไหร่ — ผมจะลงทะเบียนให้เป็น AI agent บน Solana ภายใน ~10 วินาที\n\n' +
+        'ตัวอย่าง: "ผมเป็นไกด์เที่ยวกรุงเทพ พูดอังกฤษได้ 600 บาทต่อชั่วโมง"',
+    });
+    return;
+  }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  try {
+    const { thaiReply } = await onboardMerchant({
+      thaiMessage: msg.text,
+      lineUserId: String(msg.chat.id),
+    });
+    await sendMessage({
+      chatId: msg.chat.id,
+      replyToMessageId: msg.message_id,
+      text: thaiReply,
+    });
+  } catch (err) {
+    console.error('onboard error', err);
+    await sendMessage({
+      chatId: msg.chat.id,
+      text: 'ขออภัยครับ ระบบเกิดข้อผิดพลาด — ลองส่งใหม่อีกครั้งครับ',
+    });
+  }
 }

@@ -5,9 +5,13 @@ const app = new Hono();
 
 app.post('/telegram/webhook', async (c) => {
   const body = await c.req.text();
+  const headers: Record<string, string> = {};
+  c.req.raw.headers.forEach((v, k) => {
+    headers[k] = v;
+  });
   const result = await handler({
     body,
-    headers: Object.fromEntries(c.req.raw.headers.entries()),
+    headers,
     requestContext: {} as any,
     isBase64Encoded: false,
     routeKey: 'POST /telegram/webhook',
