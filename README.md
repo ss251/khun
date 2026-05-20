@@ -76,7 +76,10 @@ bun packages/agent-creator/src/cli.ts   # sanity-check Bitkub ticker + treasury 
 You also need to set these env vars (see `.env.example`):
 
 ```
-AWS_BEARER_TOKEN_BEDROCK   # from AWS Bedrock console
+# Claude — set EITHER of these (claude.ts auto-selects):
+ANTHROPIC_API_KEY          # from console.anthropic.com (preferred — works immediately)
+AWS_BEARER_TOKEN_BEDROCK   # from AWS Bedrock console (fallback — requires model-access approval)
+
 TYPHOON_API_KEY            # from playground.opentyphoon.ai
 LINE_CHANNEL_SECRET        # from developers.line.biz
 LINE_CHANNEL_ACCESS_TOKEN  # from developers.line.biz

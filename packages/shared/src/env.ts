@@ -9,7 +9,10 @@ function optional(name: string, fallback = ''): string {
 }
 
 export const env = {
-  // AWS Bedrock
+  // Claude — either provider works. Auto-selection in line-bot/src/claude.ts:
+  //   prefers ANTHROPIC_API_KEY if set, falls back to AWS_BEARER_TOKEN_BEDROCK.
+  anthropicApiKey: () => optional('ANTHROPIC_API_KEY'),
+  anthropicModelId: () => optional('ANTHROPIC_MODEL_ID', 'claude-opus-4-7'),
   awsBearerTokenBedrock: () => required('AWS_BEARER_TOKEN_BEDROCK'),
   awsRegion: () => optional('AWS_REGION', 'us-east-1'),
   bedrockRegion: () => optional('BEDROCK_REGION', 'us-east-1'),
