@@ -1,30 +1,78 @@
-import { Keypair } from '@solana/web3.js';
-import type { MerchantIntent } from '@khun/shared';
-import { env } from '@khun/shared';
+import { ServiceType, buildRegistrationFileJson } from '8004-solana';
+import type { KhunAgent, MerchantIntent } from '@khun/shared';
+import { ensureKhunCollection } from './collection.js';
+import { getIpfs } from './ipfs.js';
+import { getSdk } from './sdk.js';
+import { deriveMerchantKeypair } from './wallet.js';
+
+export interface RegisterKhunAgentInput {
+  intent: MerchantIntent;
+  endpointUrl: string;       // x402-payable URL we'll serve on Lambda
+  ownerChatId: string;       // Telegram chat id (used for HKDF wallet derivation + notification routing)
+}
 
 /**
- * Block 3 implementation. Stubbed to keep Block 1 fast.
- *
- * Live API per `npm 8004-solana` README (verified github.com/QuantuLabs/8004-solana-ts):
- *   const { SolanaSDK, IPFSClient, buildRegistrationFileJson, ServiceType } = await import('8004-solana');
- *   const sdk = new SolanaSDK({ cluster: env.agentRegistryCluster(), signer, ipfsClient });
- *   const collection = await sdk.createCollection({ name: 'Khun', symbol: 'KHUN', description: '...', image: 'ipfs://...' });
- *   const agentMeta = buildRegistrationFileJson({
- *     name: intent.serviceDescriptionEnglish,
- *     description: intent.serviceDescriptionThai,
- *     services: [{ type: ServiceType.A2A, value: endpointUrl }],
- *     skills: [...],
- *   });
- *   const metadataUri = `ipfs://${await ipfsClient.addJson(agentMeta)}`;
- *   const agent = await sdk.registerAgent(metadataUri, { collectionPointer: collection.pointer });
- *   return agent.asset.toBase58();
+ * Real Block 3 implementation: builds the agent metadata, pins it to IPFS
+ * via Pinata, calls 8004-solana `registerAgent` against mainnet, then
+ * `setAgentWallet` so the merchant's HKDF-derived keypair signs feedback
+ * for this agent.
  */
-export async function registerKhunAgent(opts: {
-  signer: Keypair;
-  intent: MerchantIntent;
-  endpointUrl: string;
-}): Promise<{ agentId: string; txSignature: string }> {
-  void opts;
-  void env.agentRegistryCluster();
-  throw new Error('TODO Block 3: integrate 8004-solana SDK registerAgent');
+export async function registerKhunAgent(input: RegisterKhunAgentInput): Promise<KhunAgent> {
+  const { intent, endpointUrl, ownerChatId } = input;
+
+  const sdk = getSdk();
+  const ipfs = getIpfs();
+  const collection = await ensureKhunCollection();
+  const merchantKp = deriveMerchantKeypair(ownerChatId);
+
+  const agentMeta = buildRegistrationFileJson({
+    name: intent.serviceDescriptionEnglish || 'Thai service provider',
+    description: intent.serviceDescriptionThai,
+    services: [
+      { type: ServiceType.A2A, value: endpointUrl },
+    ],
+    walletAddress: merchantKp.publicKey.toBase58(),
+    active: true,
+    x402Support: true,
+    trustModels: ['reputation'],
+    metadata: {
+      khun_version: '0.1.0',
+      price_usdt: intent.priceUsdt,
+      price_thb_reference: intent.priceThbReference,
+      category: intent.category,
+      hours: intent.hours,
+      location: intent.location,
+      languages: intent.languages,
+    },
+  });
+
+  const metadataCid = await ipfs.addJson(agentMeta);
+  const metadataUri = `ipfs://${metadataCid}`;
+
+  const result = await sdk.registerAgent(metadataUri, {
+    collectionPointer: collection.pointer,
+  });
+
+  if (!('asset' in result) || !result.asset) {
+    throw new Error('registerAgent returned no asset address');
+  }
+  const assetAddress = result.asset.toBase58();
+  const sig =
+    'signatures' in result && Array.isArray(result.signatures) && result.signatures[0]
+      ? result.signatures[0]
+      : 'unknown';
+
+  // Bind the merchant's operational wallet so it can sign future feedback
+  // / endpoint actions for this agent without the treasury key.
+  await sdk.setAgentWallet(result.asset, merchantKp);
+
+  return {
+    agentId: assetAddress,
+    ownerChatId,
+    walletAddress: merchantKp.publicKey.toBase58(),
+    endpointUrl,
+    intent,
+    registeredAt: new Date().toISOString(),
+    registryTxSignature: sig,
+  };
 }

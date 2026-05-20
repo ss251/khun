@@ -27,7 +27,7 @@ export async function handleUpdate(update: unknown): Promise<void> {
   try {
     const { thaiReply } = await onboardMerchant({
       thaiMessage: msg.text,
-      lineUserId: String(msg.chat.id),
+      chatId: String(msg.chat.id),
     });
     await sendMessage({
       chatId: msg.chat.id,

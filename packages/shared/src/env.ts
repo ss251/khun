@@ -87,12 +87,10 @@ export const env = {
     | 'devnet'
     | 'localnet',
 
-  // Turnkey
-  turnkeyApiPublicKey: () => required('TURNKEY_API_PUBLIC_KEY'),
-  turnkeyApiPrivateKey: () => required('TURNKEY_API_PRIVATE_KEY'),
-  turnkeyOrganizationId: () => required('TURNKEY_ORGANIZATION_ID'),
+  // Khun master seed (HKDF root for per-merchant Ed25519 keypairs)
+  khunMasterSeed: () => required('KHUN_MASTER_SEED'),
 
-  // Pinata
+  // Pinata (used by 8004-solana SDK IPFSClient to upload agent metadata)
   pinataJwt: () => required('PINATA_JWT'),
 
   // Bitkub

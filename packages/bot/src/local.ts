@@ -1,8 +1,11 @@
 import { Hono } from 'hono';
+import { buildAgentApi } from '@khun/agent-creator';
 import { handler } from './handler.js';
+import { publicBaseUrl } from './config.js';
 
 const app = new Hono();
 
+// --- Telegram webhook (LINE replacement) ---
 app.post('/telegram/webhook', async (c) => {
   const body = await c.req.text();
   const headers: Record<string, string> = {};
@@ -22,6 +25,14 @@ app.post('/telegram/webhook', async (c) => {
   const r = result as { statusCode: number; body: string };
   return c.text(r.body, r.statusCode as any);
 });
+
+// --- Per-agent x402 endpoints ---
+// Mounted at /agent/* so URLs match `${publicBaseUrl}/agent/{id}/order`.
+app.route('/agent', buildAgentApi({ publicBaseUrl: publicBaseUrl() }));
+
+app.get('/', (c) =>
+  c.text('Khun — Thai service-provider agents on Solana via x402. github.com/ss251/khun')
+);
 
 export default app;
 // Bun auto-serves the default export.
