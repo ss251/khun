@@ -33,3 +33,20 @@ export function getAgent(agentId: string): KhunAgent | null {
 export function listAgents(): KhunAgent[] {
   return Object.values(load());
 }
+
+export function getAgentByOwner(chatId: string): KhunAgent | null {
+  const all = load();
+  for (const a of Object.values(all)) {
+    if (a.ownerChatId === chatId) return a;
+  }
+  return null;
+}
+
+export function updateAgentPrice(agentId: string, priceUsdt: number): KhunAgent | null {
+  const s = load();
+  const a = s[agentId];
+  if (!a) return null;
+  a.intent.priceUsdt = priceUsdt;
+  save(s);
+  return a;
+}

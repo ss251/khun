@@ -31,6 +31,8 @@
       "dependencies": {
         "@khun/agent-creator": "*",
         "@khun/shared": "*",
+        "@solana/spl-token": "^0.4.9",
+        "@solana/web3.js": "^1.95.0",
         "hono": "^4.6.0",
         "openai": "^4.80.0",
       },
