@@ -5,16 +5,23 @@
   "description": "Thai LINE bot turns any service provider into a Solana mainnet x402-payable AI agent. SEABW 2026 hackathon.",
   "workspaces": ["packages/*"],
   "scripts": {
-    "dev:line": "bun --watch packages/line-bot/src/local.ts",
+    "dev:bot": "bun --watch packages/bot/src/local.ts",
     "dev:dashboard": "cd packages/dashboard && bun run dev",
-    "build:line": "cd packages/line-bot && bun run build",
-    "deploy:line": "cd packages/line-bot && bun run deploy",
+    "build:bot": "cd packages/bot && bun run build",
+    "deploy:bot": "cd packages/bot && bun run deploy",
     "register-agent": "bun packages/agent-creator/src/cli.ts",
+    "smoke": "bun scripts/smoke-test.ts",
+    "khun:devnet": "KHUN_ENV=devnet bun packages/agent-creator/src/cli.ts",
+    "khun:mainnet": "KHUN_ENV=mainnet bun packages/agent-creator/src/cli.ts",
+    "devnet:setup-mint": "KHUN_ENV=devnet bun scripts/setup-devnet-mint.ts",
+    "buyer:pay": "KHUN_ENV=devnet bun packages/customer-agent/src/pay.ts",
     "typecheck": "bun --bun tsc -b"
   },
   "devDependencies": {
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.95.0",
     "@types/node": "^22.0.0",
-    "typescript": "^5.6.0",
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
   }
 }

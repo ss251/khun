@@ -8,8 +8,8 @@ interface BitkubTicker {
 }
 
 /**
- * Public Bitkub ticker for live THB rate. Confirmed symbol: USDT_THB (NOT THB_USDT).
- * Used in the LINE onboarding confirmation + "withdraw" preview.
+ * Public Bitkub ticker for live THB rate. Confirmed symbol: USDT_THB.
+ * Used in the Telegram onboarding confirmation + /withdraw + /me replies.
  */
 export async function getUsdtThbRate(): Promise<number> {
   const url = `${env.bitkubApiBase()}/api/v3/market/ticker?sym=USDT_THB`;
@@ -21,15 +21,4 @@ export async function getUsdtThbRate(): Promise<number> {
   return parseFloat(row.last);
 }
 
-/**
- * Block 6 stub: real off-ramp = SPL transfer from agent wallet to merchant's
- * Bitkub Solana-USDT deposit address. The THB conversion + bank withdrawal
- * happens inside Bitkub (out of scope for v0; surface as a link/QR).
- */
-export async function offrampToBitkub(_opts: {
-  fromAgentWallet: string;
-  amountUsdt: number;
-  toBitkubDepositAddress: string;
-}): Promise<{ txSignature: string }> {
-  throw new Error('TODO Block 6: real SPL transfer to merchant Bitkub deposit address');
-}
+// The real Bitkub off-ramp lives in offramp.ts (offrampToBitkub).

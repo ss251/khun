@@ -11,7 +11,7 @@ export interface MerchantIntent {
 
 export interface KhunAgent {
   agentId: string;           // 8004 Metaplex Core asset address
-  ownerLineUserId: string;
+  ownerChatId: string;       // Telegram chat id of the merchant
   walletAddress: string;     // Solana mainnet address
   endpointUrl: string;       // public x402 URL on Lambda
   bitkubDepositAddress?: string;

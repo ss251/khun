@@ -2,7 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/shared" },
-    { "path": "./packages/line-bot" },
+    { "path": "./packages/bot" },
     { "path": "./packages/agent-creator" },
     { "path": "./packages/customer-agent" }
   ]
