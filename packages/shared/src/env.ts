@@ -1,3 +1,46 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+/**
+ * Load .env into process.env with override semantics.
+ *
+ * Bun and dotenv both default to "shell wins over .env", which has bitten us
+ * before (a stale `export TELEGRAM_BOT_TOKEN` in the parent shell silently
+ * shadowed the fresh value in .env). For this hackathon we want .env to be
+ * the source of truth — period.
+ *
+ * Looks up the project .env relative to this file, not cwd, so it works no
+ * matter where a script is launched from.
+ */
+function loadDotenvOverride(): void {
+  // packages/shared/src/env.ts → repo root is three directories up.
+  const candidates = [
+    path.resolve(import.meta.dirname, '../../..', '.env'),
+    path.resolve(process.cwd(), '.env'),
+  ];
+  for (const p of candidates) {
+    if (!fs.existsSync(p)) continue;
+    for (const line of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq <= 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      process.env[key] = value; // override
+    }
+    return; // first hit wins
+  }
+}
+
+loadDotenvOverride();
+
 function required(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`Missing required env var: ${name}`);
@@ -22,7 +65,7 @@ export const env = {
   // Typhoon (SCB 10X)
   typhoonApiKey: () => required('TYPHOON_API_KEY'),
   typhoonBaseUrl: () => optional('TYPHOON_BASE_URL', 'https://api.opentyphoon.ai/v1'),
-  typhoonModelId: () => optional('TYPHOON_MODEL_ID', 'typhoon-v2.1-12b-instruct'),
+  typhoonModelId: () => optional('TYPHOON_MODEL_ID', 'typhoon-v2.5-30b-a3b-instruct'),
 
   // Telegram (LINE pivoted away — see PLAN.md)
   telegramBotToken: () => required('TELEGRAM_BOT_TOKEN'),
