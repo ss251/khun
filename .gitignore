@@ -26,6 +26,8 @@ keypair.json
 id.json
 .anchor/
 target/
+.keys/*
+!.keys/.gitkeep
 
 # AWS / deploy
 .aws-sam/

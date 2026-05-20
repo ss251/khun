@@ -24,9 +24,11 @@ export const env = {
   typhoonBaseUrl: () => optional('TYPHOON_BASE_URL', 'https://api.opentyphoon.ai/v1'),
   typhoonModelId: () => optional('TYPHOON_MODEL_ID', 'typhoon-v2.1-12b-instruct'),
 
-  // LINE
-  lineChannelSecret: () => required('LINE_CHANNEL_SECRET'),
-  lineChannelAccessToken: () => required('LINE_CHANNEL_ACCESS_TOKEN'),
+  // Telegram (LINE pivoted away — see PLAN.md)
+  telegramBotToken: () => required('TELEGRAM_BOT_TOKEN'),
+  /** Optional but recommended. Random string set when we call setWebhook;
+   *  Telegram echoes it in X-Telegram-Bot-Api-Secret-Token on each call. */
+  telegramSecretToken: () => optional('TELEGRAM_SECRET_TOKEN'),
 
   // Solana
   solanaRpcUrl: () => required('SOLANA_RPC_URL'),

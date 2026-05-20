@@ -3,15 +3,15 @@ import { handler } from './handler.js';
 
 const app = new Hono();
 
-app.post('/line/webhook', async (c) => {
+app.post('/telegram/webhook', async (c) => {
   const body = await c.req.text();
   const result = await handler({
     body,
     headers: Object.fromEntries(c.req.raw.headers.entries()),
     requestContext: {} as any,
     isBase64Encoded: false,
-    routeKey: 'POST /line/webhook',
-    rawPath: '/line/webhook',
+    routeKey: 'POST /telegram/webhook',
+    rawPath: '/telegram/webhook',
     rawQueryString: '',
     version: '2.0',
   } as any);

@@ -1,5 +1,5 @@
 {
-  "name": "@khun/line-bot",
+  "name": "@khun/bot",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,11 +7,10 @@
   "scripts": {
     "dev": "bun --watch src/local.ts",
     "build": "esbuild src/handler.ts --bundle --platform=node --target=node22 --outfile=dist/handler.mjs --format=esm --external:@aws-sdk/* --banner:js='import{createRequire}from\"node:module\";const require=createRequire(import.meta.url);'",
-    "deploy": "bun run build && cd dist && zip -r ../handler.zip . && aws lambda update-function-code --function-name khun-line-bot --zip-file fileb://../handler.zip --no-cli-pager"
+    "deploy": "bun run build && cd dist && zip -r ../handler.zip . && aws lambda update-function-code --function-name khun-bot --zip-file fileb://../handler.zip --no-cli-pager"
   },
   "dependencies": {
     "@khun/shared": "*",
-    "@line/bot-sdk": "^9.0.0",
     "openai": "^4.80.0",
     "hono": "^4.6.0"
   },
