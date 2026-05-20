@@ -10,6 +10,9 @@
     "build:bot": "cd packages/bot && bun run build",
     "deploy:bot": "cd packages/bot && bun run deploy",
     "register-agent": "bun packages/agent-creator/src/cli.ts",
+    "smoke": "bun scripts/smoke-test.ts",
+    "khun:devnet": "KHUN_ENV=devnet bun packages/agent-creator/src/cli.ts",
+    "khun:mainnet": "KHUN_ENV=mainnet bun packages/agent-creator/src/cli.ts",
     "typecheck": "bun --bun tsc -b"
   },
   "devDependencies": {

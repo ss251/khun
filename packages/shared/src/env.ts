@@ -2,24 +2,35 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * Load .env into process.env with override semantics.
+ * Load .env files into process.env with override semantics.
  *
- * Bun and dotenv both default to "shell wins over .env", which has bitten us
- * before (a stale `export TELEGRAM_BOT_TOKEN` in the parent shell silently
- * shadowed the fresh value in .env). For this hackathon we want .env to be
- * the source of truth — period.
+ * Bun and dotenv both default to "shell wins over .env" — we want the
+ * opposite, since a stale shell export bit us before. We also want a clean
+ * way to switch clusters without rewriting .env every time.
  *
- * Looks up the project .env relative to this file, not cwd, so it works no
- * matter where a script is launched from.
+ * Loading order (later wins):
+ *   1. .env                   — shared secrets (API keys, master seed, etc.)
+ *   2. .env.<KHUN_ENV>        — cluster-specific overrides (devnet by default)
+ *
+ * Set KHUN_ENV=mainnet (in shell or a wrapper script) to load .env.mainnet
+ * instead of .env.devnet for the live demo.
  */
 function loadDotenvOverride(): void {
   // packages/shared/src/env.ts → repo root is three directories up.
-  const candidates = [
-    path.resolve(import.meta.dirname, '../../..', '.env'),
+  const repoRoot = path.resolve(import.meta.dirname, '../../..');
+  const cluster = process.env.KHUN_ENV ?? 'devnet';
+  const files = [
+    path.resolve(repoRoot, '.env'),
+    path.resolve(repoRoot, `.env.${cluster}`),
+    // Fallback to cwd-relative paths if the repoRoot path doesn't exist
+    // (e.g., when packaged into a Lambda zip with a flat layout).
     path.resolve(process.cwd(), '.env'),
+    path.resolve(process.cwd(), `.env.${cluster}`),
   ];
-  for (const p of candidates) {
-    if (!fs.existsSync(p)) continue;
+  const seen = new Set<string>();
+  for (const p of files) {
+    if (seen.has(p) || !fs.existsSync(p)) continue;
+    seen.add(p);
     for (const line of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith('#')) continue;
@@ -35,7 +46,6 @@ function loadDotenvOverride(): void {
       }
       process.env[key] = value; // override
     }
-    return; // first hit wins
   }
 }
 
