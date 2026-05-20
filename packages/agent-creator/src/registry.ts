@@ -58,8 +58,8 @@ export async function registerKhunAgent(input: RegisterKhunAgentInput): Promise<
   }
   const assetAddress = result.asset.toBase58();
   const sig =
-    'signatures' in result && Array.isArray(result.signatures) && result.signatures[0]
-      ? result.signatures[0]
+    'signature' in result && typeof result.signature === 'string'
+      ? result.signature
       : 'unknown';
 
   // Bind the merchant's operational wallet so it can sign future feedback
