@@ -5,5 +5,6 @@ export * from './collection.js';
 export * from './registry.js';
 export * from './x402.js';
 export * from './x402-server.js';
+export * from './x402-settle.js';
 export * from './store.js';
 export * from './bitkub.js';

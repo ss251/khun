@@ -13,6 +13,8 @@
     "smoke": "bun scripts/smoke-test.ts",
     "khun:devnet": "KHUN_ENV=devnet bun packages/agent-creator/src/cli.ts",
     "khun:mainnet": "KHUN_ENV=mainnet bun packages/agent-creator/src/cli.ts",
+    "devnet:setup-mint": "KHUN_ENV=devnet bun scripts/setup-devnet-mint.ts",
+    "buyer:pay": "KHUN_ENV=devnet bun packages/customer-agent/src/pay.ts",
     "typecheck": "bun --bun tsc -b"
   },
   "devDependencies": {

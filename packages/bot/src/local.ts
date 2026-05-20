@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { buildAgentApi } from '@khun/agent-creator';
 import { handler } from './handler.js';
 import { publicBaseUrl } from './config.js';
+import { notifyMerchantOfPayment } from './notify.js';
 
 const app = new Hono();
 
@@ -28,7 +29,21 @@ app.post('/telegram/webhook', async (c) => {
 
 // --- Per-agent x402 endpoints ---
 // Mounted at /agent/* so URLs match `${publicBaseUrl}/agent/{id}/order`.
-app.route('/agent', buildAgentApi({ publicBaseUrl: publicBaseUrl() }));
+app.route(
+  '/agent',
+  buildAgentApi({
+    publicBaseUrl: publicBaseUrl(),
+    onSettlementConfirmed: async ({ agent, receipt, buyerNote }) => {
+      const amountUsdt = Number(receipt.amountAtomic) / 1_000_000;
+      await notifyMerchantOfPayment({
+        agent,
+        amountUsdt,
+        txSignature: receipt.txSignature,
+        buyerNote,
+      });
+    },
+  })
+);
 
 app.get('/', (c) =>
   c.text('Khun — Thai service-provider agents on Solana via x402. github.com/ss251/khun')
